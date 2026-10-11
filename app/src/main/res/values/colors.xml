@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SafeRide design system -->
+    <color name="background">#0B141C</color>
+    <color name="surface">#142430</color>
+    <color name="surface_elevated">#1B303F</color>
+    <color name="text_primary">#F7F9FC</color>
+    <color name="text_secondary">#A9BAC6</color>
+    <color name="safe">#20C978</color>
+    <color name="safe_dark">#158C55</color>
+    <color name="emergency">#E63946</color>
+    <color name="emergency_dark">#B32130</color>
+    <color name="secondary_action">#247DE8</color>
+    <color name="divider">#2A3B47</color>
+    <color name="scrim">#CC000000</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
