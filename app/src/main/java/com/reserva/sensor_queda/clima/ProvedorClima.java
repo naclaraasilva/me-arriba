@@ -34,6 +34,8 @@ public class ProvedorClima {
         public double temperaturaC;
         public String icone;
         public String erro;
+        public int condicaoId;
+        public double velocidadeVento;
     }
 
     public interface Callback {
@@ -106,6 +108,11 @@ public class ProvedorClima {
             JSONObject item = weather.getJSONObject(0);
             info.descricao = capitalizar(item.optString("description"));
             info.icone = item.optString("icon");
+            info.condicaoId = item.optInt("id");
+        }
+        JSONObject wind = json.optJSONObject("wind");
+        if (wind != null) {
+            info.velocidadeVento = wind.optDouble("speed");
         }
         info.ok = info.descricao != null && !info.descricao.isEmpty();
     }

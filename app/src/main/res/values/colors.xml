@@ -14,6 +14,9 @@
     <color name="divider">#2A3B47</color>
     <color name="scrim">#CC000000</color>
 
+    <color name="warning">#F5A623</color>
+    <color name="warning_bg">#3D2A0F</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

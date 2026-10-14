@@ -215,6 +215,56 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardAlertaClima"
+                style="@style/Widget.MeArriba.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_card"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/warning_bg">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_alert"
+                            app:tint="@color/warning" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/txtAlertaClimaTitulo"
+                                style="@style/Text.MeArriba.SectionLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/alerta_clima_titulo"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/txtAlertaClimaMsg"
+                                style="@style/Text.MeArriba.Body"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/alerta_clima_msg"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMonitorar"
                 style="@style/Widget.MeArriba.Button.Safe"

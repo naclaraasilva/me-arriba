@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -48,6 +49,9 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
     private TextView txtTransporte;
     private TextView txtClima;
     private TextView txtSensores;
+    private TextView txtAlertaClimaTitulo;
+    private TextView txtAlertaClimaMsg;
+    private View cardAlertaClima;
     private MaterialButton btnMonitorar;
     private MaterialButton btnPanico;
     private MaterialButton btnSimular;
@@ -115,6 +119,9 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
         txtTransporte = findViewById(R.id.txtTransporte);
         txtClima = findViewById(R.id.txtClima);
         txtSensores = findViewById(R.id.txtSensores);
+        txtAlertaClimaTitulo = findViewById(R.id.txtAlertaClimaTitulo);
+        txtAlertaClimaMsg = findViewById(R.id.txtAlertaClimaMsg);
+        cardAlertaClima = findViewById(R.id.cardAlertaClima);
         btnMonitorar = findViewById(R.id.btnMonitorar);
         btnPanico = findViewById(R.id.btnPanico);
         btnSimular = findViewById(R.id.btnSimular);
@@ -258,6 +265,7 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
     private void carregarClima(double lat, double lon) {
         if (!ProvedorClima.temChaveApi()) {
             txtClima.setText(R.string.clima_indisponivel);
+            esconderAlertaClima();
             return;
         }
         txtClima.setText(R.string.clima_carregando);
@@ -268,10 +276,37 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
             if (info.ok) {
                 txtClima.setText(getString(R.string.clima_formato, info.descricao,
                         Math.round(info.temperaturaC)));
+                atualizarAlertaClima(info);
             } else {
                 txtClima.setText(R.string.clima_indisponivel);
+                esconderAlertaClima();
             }
         });
+    }
+
+    private void atualizarAlertaClima(ProvedorClima.InfoClima info) {
+        String msg = null;
+        int tituloRes = R.string.alerta_clima_titulo;
+
+        if (info.condicaoId >= 200 && info.condicaoId < 300) {
+            msg = getString(R.string.alerta_clima_tempestade);
+        } else if (info.condicaoId >= 300 && info.condicaoId < 600) {
+            msg = getString(R.string.alerta_clima_chuva);
+        } else if (info.velocidadeVento >= 10.0) {
+            msg = getString(R.string.alerta_clima_vento);
+        }
+
+        if (msg != null) {
+            txtAlertaClimaTitulo.setText(tituloRes);
+            txtAlertaClimaMsg.setText(msg);
+            cardAlertaClima.setVisibility(View.VISIBLE);
+        } else {
+            esconderAlertaClima();
+        }
+    }
+
+    private void esconderAlertaClima() {
+        cardAlertaClima.setVisibility(View.GONE);
     }
 
     private void agendarCheckIn() {

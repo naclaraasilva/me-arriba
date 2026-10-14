@@ -20,6 +20,11 @@
     <string name="clima_indisponivel">Clima indisponível</string>
     <string name="clima_carregando">Obtendo clima…</string>
     <string name="clima_formato">%1$s · %2$d°C</string>
+    <string name="alerta_clima_titulo">Atenção: Condições adversas</string>
+    <string name="alerta_clima_chuva">Chuva detectada. Reduza a velocidade e aumente a distância de frenagem.</string>
+    <string name="alerta_clima_vento">Vento forte. Mantenha firmeza no guidão e cuidado com rajadas laterais.</string>
+    <string name="alerta_clima_tempestade">Tempestade. Busque abrigo seguro e evite áreas abertas.</string>
+    <string name="alerta_clima_msg">Condições climáticas adversas detectadas. Redobre a atenção.</string>
     <string name="iniciar_monitoramento">Iniciar monitoramento</string>
     <string name="parar_monitoramento">Parar monitoramento</string>
     <string name="botao_panico">BOTÃO DE PÂNICO</string>
