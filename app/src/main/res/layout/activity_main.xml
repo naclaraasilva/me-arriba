@@ -9,7 +9,7 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <include layout="@layout/view_header" />
+    <include layout="@layout/view_cabecalho" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -32,8 +32,8 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="8dp">
 
-                <com.reserva.sensor_queda.widget.RingProgressView
-                    android:id="@+id/ringStatus"
+                <com.reserva.sensor_queda.componente.VisaoAnelProgresso
+                    android:id="@+id/anelStatus"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
@@ -45,7 +45,7 @@
                     android:orientation="vertical">
 
                     <ImageView
-                        android:id="@+id/imgShield"
+                        android:id="@+id/imgEscudo"
                         android:layout_width="52dp"
                         android:layout_height="52dp"
                         android:contentDescription="@null"
@@ -54,15 +54,15 @@
 
                     <TextView
                         android:id="@+id/txtStatus"
-                        style="@style/Text.SafeRide.CardTitle"
+                        style="@style/Text.MeArriba.CardTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:text="@string/monitoring_inactive" />
 
                     <TextView
-                        android:id="@+id/txtStatusSub"
-                        style="@style/Text.SafeRide.Secondary"
+                        android:id="@+id/txtStatusDetalhe"
+                        style="@style/Text.MeArriba.Secondary"
                         android:layout_width="200dp"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
@@ -73,7 +73,7 @@
             </FrameLayout>
 
             <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.SafeRide.Card"
+                style="@style/Widget.MeArriba.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_card">
@@ -100,14 +100,14 @@
                         android:orientation="vertical">
 
                         <TextView
-                            style="@style/Text.SafeRide.SectionLabel"
+                            style="@style/Text.MeArriba.SectionLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/sua_localizacao" />
 
                         <TextView
                             android:id="@+id/txtLocalizacao"
-                            style="@style/Text.SafeRide.Body"
+                            style="@style/Text.MeArriba.Body"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
@@ -123,7 +123,7 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.card.MaterialCardView
-                    style="@style/Widget.SafeRide.Card"
+                    style="@style/Widget.MeArriba.Card"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="6dp"
@@ -151,7 +151,7 @@
                             android:orientation="vertical">
 
                             <TextView
-                                style="@style/Text.SafeRide.SectionLabel"
+                                style="@style/Text.MeArriba.SectionLabel"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/modo_transporte"
@@ -159,7 +159,7 @@
 
                             <TextView
                                 android:id="@+id/txtTransporte"
-                                style="@style/Text.SafeRide.Body"
+                                style="@style/Text.MeArriba.Body"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/transporte_moto"
@@ -169,7 +169,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    style="@style/Widget.SafeRide.Card"
+                    style="@style/Widget.MeArriba.Card"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
@@ -197,7 +197,7 @@
                             android:orientation="vertical">
 
                             <TextView
-                                style="@style/Text.SafeRide.SectionLabel"
+                                style="@style/Text.MeArriba.SectionLabel"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/clima_atual"
@@ -205,7 +205,7 @@
 
                             <TextView
                                 android:id="@+id/txtClima"
-                                style="@style/Text.SafeRide.Body"
+                                style="@style/Text.MeArriba.Body"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/clima_indisponivel"
@@ -217,7 +217,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMonitorar"
-                style="@style/Widget.SafeRide.Button.Safe"
+                style="@style/Widget.MeArriba.Button.Safe"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
@@ -225,7 +225,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPanico"
-                style="@style/Widget.SafeRide.Button.Danger"
+                style="@style/Widget.MeArriba.Button.Danger"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -237,7 +237,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSimular"
-                style="@style/Widget.SafeRide.Button.Outline"
+                style="@style/Widget.MeArriba.Button.Outline"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -245,7 +245,7 @@
 
             <TextView
                 android:id="@+id/txtSensores"
-                style="@style/Text.SafeRide.Secondary"
+                style="@style/Text.MeArriba.Secondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
@@ -257,14 +257,14 @@
     </ScrollView>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNav"
+        android:id="@+id/navegacaoInferior"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/surface"
         app:itemActiveIndicatorStyle="@null"
-        app:itemIconTint="@color/bottom_nav_item"
-        app:itemTextColor="@color/bottom_nav_item"
+        app:itemIconTint="@color/item_navegacao_inferior"
+        app:itemTextColor="@color/item_navegacao_inferior"
         app:labelVisibilityMode="labeled"
-        app:menu="@menu/menu_bottom_nav" />
+        app:menu="@menu/menu_navegacao_inferior" />
 
 </LinearLayout>

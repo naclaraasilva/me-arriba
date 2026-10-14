@@ -36,20 +36,20 @@
         </activity>
 
         <activity
-            android:name=".ui.FallDetectedActivity"
+            android:name=".ui.QuedaDetectadaActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
         <activity
-            android:name=".ui.AlertStatusActivity"
+            android:name=".ui.StatusAlertaActivity"
             android:exported="false" />
 
         <activity
-            android:name=".ui.SettingsActivity"
+            android:name=".ui.ConfiguracoesActivity"
             android:exported="false" />
 
         <activity
-            android:name=".ui.HistoryActivity"
+            android:name=".ui.HistoricoActivity"
             android:exported="false" />
 
     </application>

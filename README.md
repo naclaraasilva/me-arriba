@@ -1,8 +1,8 @@
-# SafeRide — Detecção de Quedas e Assistência de Emergência
+# Me arriba — Detecção de Quedas e Assistência de Emergência
 
 Aplicativo Android que detecta possíveis quedas/acidentes usando os sensores do
 smartphone e conduz o usuário a solicitar ajuda. Interface em português (tema
-escuro SafeRide), implementada em **Java + XML** seguindo o padrão do projeto
+escuro Me arriba), implementada em **Java + XML** seguindo o padrão do projeto
 `tresSensores-main` (Activities + `SensorManager` + `findViewById`).
 
 ## Telas (MVP — 5 telas essenciais)

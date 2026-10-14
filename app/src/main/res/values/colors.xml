@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- SafeRide design system -->
+    <!-- Me arriba design system -->
     <color name="background">#0B141C</color>
     <color name="surface">#142430</color>
     <color name="surface_elevated">#1B303F</color>

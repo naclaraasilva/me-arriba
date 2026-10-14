@@ -25,24 +25,25 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.reserva.sensor_queda.alert.LocationProvider;
-import com.reserva.sensor_queda.data.EventRepository;
-import com.reserva.sensor_queda.data.EventType;
-import com.reserva.sensor_queda.data.SettingsRepository;
-import com.reserva.sensor_queda.sensor.FallDetector;
-import com.reserva.sensor_queda.telemetry.TelemetrySender;
-import com.reserva.sensor_queda.ui.AlertStatusActivity;
-import com.reserva.sensor_queda.ui.FallDetectedActivity;
-import com.reserva.sensor_queda.ui.HistoryActivity;
-import com.reserva.sensor_queda.ui.SettingsActivity;
-import com.reserva.sensor_queda.widget.RingProgressView;
+import com.reserva.sensor_queda.alerta.ProvedorLocalizacao;
+import com.reserva.sensor_queda.dados.RepositorioEventos;
+import com.reserva.sensor_queda.dados.TipoEvento;
+import com.reserva.sensor_queda.dados.RepositorioConfiguracoes;
+import com.reserva.sensor_queda.sensor.DetectorQueda;
+import com.reserva.sensor_queda.telemetria.EnviadorTelemetria;
+import com.reserva.sensor_queda.ui.StatusAlertaActivity;
+import com.reserva.sensor_queda.ui.QuedaDetectadaActivity;
+import com.reserva.sensor_queda.ui.HistoricoActivity;
+import com.reserva.sensor_queda.ui.ConfiguracoesActivity;
+import com.reserva.sensor_queda.clima.ProvedorClima;
+import com.reserva.sensor_queda.componente.VisaoAnelProgresso;
 
-public class MainActivity extends AppCompatActivity implements FallDetector.Listener {
+public class MainActivity extends AppCompatActivity implements DetectorQueda.Listener {
 
-    private RingProgressView ringStatus;
-    private ImageView imgShield;
+    private VisaoAnelProgresso anelStatus;
+    private ImageView imgEscudo;
     private TextView txtStatus;
-    private TextView txtStatusSub;
+    private TextView txtStatusDetalhe;
     private TextView txtLocalizacao;
     private TextView txtTransporte;
     private TextView txtClima;
@@ -51,14 +52,14 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
     private MaterialButton btnPanico;
     private MaterialButton btnSimular;
 
-    private FallDetector fallDetector;
-    private SettingsRepository settings;
-    private EventRepository events;
+    private DetectorQueda detectorQueda;
+    private RepositorioConfiguracoes configuracoes;
+    private RepositorioEventos eventos;
 
     private boolean monitoramentoAtivo = false;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Runnable checkInTask = new Runnable() {
+    private final Runnable tarefaCheckIn = new Runnable() {
         @Override
         public void run() {
             mostrarCheckIn();
@@ -68,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
 
     private static final long INTERVALO_TELEMETRIA_MS = 15000L;
 
-    private final Runnable telemetriaTask = new Runnable() {
+    private final Runnable tarefaTelemetria = new Runnable() {
         @Override
         public void run() {
             enviarTelemetriaNormal();
@@ -89,27 +90,27 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
             return insets;
         });
 
-        settings = SettingsRepository.get(this);
-        events = EventRepository.get(this);
-        fallDetector = new FallDetector(this, this);
+        configuracoes = RepositorioConfiguracoes.get(this);
+        eventos = RepositorioEventos.get(this);
+        detectorQueda = new DetectorQueda(this, this);
 
         permissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
-                result -> atualizarCartaoLocalizacao());
+                resultado -> atualizarCartaoLocalizacao());
 
-        bindViews();
+        mapearViews();
         configurarAcoes();
 
-        monitoramentoAtivo = settings.isMonitoringEnabled();
+        monitoramentoAtivo = configuracoes.isMonitoramentoAtivo();
         atualizarInterface();
         atualizarStatusSensores();
     }
 
-    private void bindViews() {
-        ringStatus = findViewById(R.id.ringStatus);
-        imgShield = findViewById(R.id.imgShield);
+    private void mapearViews() {
+        anelStatus = findViewById(R.id.anelStatus);
+        imgEscudo = findViewById(R.id.imgEscudo);
         txtStatus = findViewById(R.id.txtStatus);
-        txtStatusSub = findViewById(R.id.txtStatusSub);
+        txtStatusDetalhe = findViewById(R.id.txtStatusDetalhe);
         txtLocalizacao = findViewById(R.id.txtLocalizacao);
         txtTransporte = findViewById(R.id.txtTransporte);
         txtClima = findViewById(R.id.txtClima);
@@ -118,15 +119,15 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
         btnPanico = findViewById(R.id.btnPanico);
         btnSimular = findViewById(R.id.btnSimular);
 
-        ImageButton btnSettings = findViewById(R.id.btnSettings);
-        btnSettings.setOnClickListener(v ->
-                startActivity(new Intent(this, SettingsActivity.class)));
+        ImageButton btnConfiguracoes = findViewById(R.id.btnConfiguracoes);
+        btnConfiguracoes.setOnClickListener(v ->
+                startActivity(new Intent(this, ConfiguracoesActivity.class)));
 
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
-        bottomNav.setSelectedItemId(R.id.nav_home);
-        bottomNav.setOnItemSelectedListener(item -> {
-            if (item.getItemId() == R.id.nav_history) {
-                startActivity(new Intent(this, HistoryActivity.class));
+        BottomNavigationView navegacaoInferior = findViewById(R.id.navegacaoInferior);
+        navegacaoInferior.setSelectedItemId(R.id.nav_inicio);
+        navegacaoInferior.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.nav_historico) {
+                startActivity(new Intent(this, HistoricoActivity.class));
                 overridePendingTransition(0, 0);
                 return false;
             }
@@ -153,65 +154,64 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
                 .setTitle(R.string.confirmar_simular)
                 .setMessage(R.string.simular_msg)
                 .setNegativeButton(R.string.cancelar, null)
-                .setPositiveButton(R.string.confirmar, (d, w) -> fallDetector.simulate())
+                .setPositiveButton(R.string.confirmar, (d, w) -> detectorQueda.simular())
                 .show());
     }
 
     private void alternarMonitoramento() {
         if (!monitoramentoAtivo) {
-            if (!fallDetector.isAvailable()) {
+            if (!detectorQueda.estaDisponivel()) {
                 Toast.makeText(this, R.string.sensor_indisponivel, Toast.LENGTH_LONG).show();
                 return;
             }
             monitoramentoAtivo = true;
-            settings.setMonitoringEnabled(true);
+            configuracoes.setMonitoramentoAtivo(true);
             atualizarInterface();
-            fallDetector.start();
+            detectorQueda.iniciar();
             solicitarPermissaoLocalizacao();
             agendarCheckIn();
             enviarTelemetriaNormal();
             agendarTelemetria();
         } else {
             monitoramentoAtivo = false;
-            settings.setMonitoringEnabled(false);
+            configuracoes.setMonitoramentoAtivo(false);
             atualizarInterface();
-            fallDetector.stop();
-            handler.removeCallbacks(checkInTask);
-            handler.removeCallbacks(telemetriaTask);
+            detectorQueda.parar();
+            handler.removeCallbacks(tarefaCheckIn);
+            handler.removeCallbacks(tarefaTelemetria);
         }
     }
 
     private void acionarPanico() {
-        Intent intent = new Intent(this, AlertStatusActivity.class);
+        Intent intent = new Intent(this, StatusAlertaActivity.class);
         startActivity(intent);
     }
 
     private void atualizarInterface() {
         if (monitoramentoAtivo) {
-            ringStatus.setCor(ContextCompat.getColor(this, R.color.safe));
-            ringStatus.setProgresso(1f);
-            imgShield.setColorFilter(ContextCompat.getColor(this, R.color.safe));
+            anelStatus.setCor(ContextCompat.getColor(this, R.color.safe));
+            anelStatus.setProgresso(1f);
+            imgEscudo.setColorFilter(ContextCompat.getColor(this, R.color.safe));
             txtStatus.setText(R.string.monitoring_active);
-            txtStatusSub.setText(R.string.detecting_falls);
+            txtStatusDetalhe.setText(R.string.detecting_falls);
             btnMonitorar.setText(R.string.parar_monitoramento);
         } else {
-            ringStatus.setCor(ContextCompat.getColor(this, R.color.divider));
-            ringStatus.setProgresso(1f);
-            imgShield.setColorFilter(ContextCompat.getColor(this, R.color.text_secondary));
+            anelStatus.setCor(ContextCompat.getColor(this, R.color.divider));
+            anelStatus.setProgresso(1f);
+            imgEscudo.setColorFilter(ContextCompat.getColor(this, R.color.text_secondary));
             txtStatus.setText(R.string.monitoring_inactive);
-            txtStatusSub.setText(R.string.monitoring_off_hint);
+            txtStatusDetalhe.setText(R.string.monitoring_off_hint);
             btnMonitorar.setText(R.string.iniciar_monitoramento);
         }
-        txtTransporte.setText(labelTransporte(settings.getTransportMode()));
-        txtClima.setText(R.string.clima_indisponivel);
+        txtTransporte.setText(rotuloTransporte(configuracoes.getModoTransporte()));
         atualizarCartaoLocalizacao();
     }
 
-    private String labelTransporte(int modo) {
+    private String rotuloTransporte(int modo) {
         switch (modo) {
-            case SettingsRepository.TRANSPORTE_BIKE:
+            case RepositorioConfiguracoes.TRANSPORTE_BICICLETA:
                 return getString(R.string.transporte_bike);
-            case SettingsRepository.TRANSPORTE_CAMINHADA:
+            case RepositorioConfiguracoes.TRANSPORTE_CAMINHADA:
                 return getString(R.string.transporte_caminhada);
             default:
                 return getString(R.string.transporte_moto);
@@ -219,10 +219,10 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
     }
 
     private void atualizarStatusSensores() {
-        if (!fallDetector.isAvailable()) {
+        if (!detectorQueda.estaDisponivel()) {
             txtSensores.setText(R.string.sensor_indisponivel);
             txtSensores.setTextColor(ContextCompat.getColor(this, R.color.emergency));
-        } else if (!fallDetector.hasGyroscope()) {
+        } else if (!detectorQueda.temGiroscopio()) {
             txtSensores.setText(R.string.sensores_ok);
             txtSensores.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
         } else {
@@ -244,48 +244,69 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
     }
 
     private void atualizarCartaoLocalizacao() {
-        LocationProvider.getLocation(this, info -> {
+        ProvedorLocalizacao.obterLocalizacao(this, info -> {
             if (info.ok && info.text != null) {
                 txtLocalizacao.setText(info.text);
+                carregarClima(info.lat, info.lon);
             } else {
                 txtLocalizacao.setText(R.string.localizacao_indisponivel);
+                txtClima.setText(R.string.clima_indisponivel);
+            }
+        });
+    }
+
+    private void carregarClima(double lat, double lon) {
+        if (!ProvedorClima.temChaveApi()) {
+            txtClima.setText(R.string.clima_indisponivel);
+            return;
+        }
+        txtClima.setText(R.string.clima_carregando);
+        ProvedorClima.obterClima(lat, lon, info -> {
+            if (isFinishing()) {
+                return;
+            }
+            if (info.ok) {
+                txtClima.setText(getString(R.string.clima_formato, info.descricao,
+                        Math.round(info.temperaturaC)));
+            } else {
+                txtClima.setText(R.string.clima_indisponivel);
             }
         });
     }
 
     private void agendarCheckIn() {
-        handler.removeCallbacks(checkInTask);
-        if (!monitoramentoAtivo || !settings.isCheckInEnabled()) {
+        handler.removeCallbacks(tarefaCheckIn);
+        if (!monitoramentoAtivo || !configuracoes.isCheckInAtivo()) {
             return;
         }
-        long intervalo = settings.getCheckInIntervalMinutes() * 60_000L;
-        handler.postDelayed(checkInTask, intervalo);
+        long intervalo = configuracoes.getIntervaloCheckIn() * 60_000L;
+        handler.postDelayed(tarefaCheckIn, intervalo);
     }
 
     private void agendarTelemetria() {
-        handler.removeCallbacks(telemetriaTask);
-        if (!monitoramentoAtivo || settings.isDemoMode() || settings.getEndpoint().isEmpty()) {
+        handler.removeCallbacks(tarefaTelemetria);
+        if (!monitoramentoAtivo || configuracoes.isModoDemo() || configuracoes.getEndpoint().isEmpty()) {
             return;
         }
-        handler.postDelayed(telemetriaTask, INTERVALO_TELEMETRIA_MS);
+        handler.postDelayed(tarefaTelemetria, INTERVALO_TELEMETRIA_MS);
     }
 
     private void enviarTelemetriaNormal() {
-        if (settings.isDemoMode() || settings.getEndpoint().isEmpty()) {
+        if (configuracoes.isModoDemo() || configuracoes.getEndpoint().isEmpty()) {
             return;
         }
-        LocationProvider.getLocation(this, info -> {
-            TelemetrySender.Sample sample = new TelemetrySender.Sample();
-            sample.queda = false;
-            sample.demo = false;
+        ProvedorLocalizacao.obterLocalizacao(this, info -> {
+            EnviadorTelemetria.Amostra amostra = new EnviadorTelemetria.Amostra();
+            amostra.queda = false;
+            amostra.demo = false;
             if (info.ok) {
-                sample.latitude = info.lat;
-                sample.longitude = info.lon;
-                sample.velocidadeKmh = info.speedKmh;
+                amostra.latitude = info.lat;
+                amostra.longitude = info.lon;
+                amostra.velocidadeKmh = info.velocidadeKmh;
             }
-            sample.temperatura = fallDetector.getUltimaTemperatura();
-            sample.pressao = fallDetector.getUltimaPressao();
-            TelemetrySender.enviar(this, settings.getEndpoint(), sample,
+            amostra.temperatura = detectorQueda.getUltimaTemperatura();
+            amostra.pressao = detectorQueda.getUltimaPressao();
+            EnviadorTelemetria.enviar(this, configuracoes.getEndpoint(), amostra,
                     (ok, msg) -> { /* telemetria periodica silenciosa */ });
         });
     }
@@ -299,29 +320,29 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
                 .setMessage(R.string.checkin_pergunta)
                 .setCancelable(false)
                 .setPositiveButton(R.string.checkin_sim, (d, w) ->
-                        events.registrar(EventType.CHECKIN, getString(R.string.evento_checkin),
+                        eventos.registrar(TipoEvento.CHECKIN, getString(R.string.evento_checkin),
                                 getString(R.string.checkin_sim)))
                 .setNegativeButton(R.string.checkin_ajuda, (d, w) -> acionarPanico())
                 .show();
     }
 
     @Override
-    public void onPotentialFall(boolean simulated) {
-        events.registrar(EventType.QUEDA_DETECTADA, getString(R.string.evento_queda_detectada),
+    public void aoPotencialQueda(boolean simulated) {
+        eventos.registrar(TipoEvento.QUEDA_DETECTADA, getString(R.string.evento_queda_detectada),
                 simulated ? getString(R.string.queda_teste) : null);
-        Intent intent = new Intent(this, FallDetectedActivity.class);
-        intent.putExtra(FallDetectedActivity.EXTRA_SIMULADO, simulated);
-        intent.putExtra(FallDetectedActivity.EXTRA_G, fallDetector.getUltimoImpactoG());
+        Intent intent = new Intent(this, QuedaDetectadaActivity.class);
+        intent.putExtra(QuedaDetectadaActivity.EXTRA_SIMULADO, simulated);
+        intent.putExtra(QuedaDetectadaActivity.EXTRA_G, detectorQueda.getUltimoImpactoG());
         startActivity(intent);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        monitoramentoAtivo = settings.isMonitoringEnabled();
+        monitoramentoAtivo = configuracoes.isMonitoramentoAtivo();
         atualizarInterface();
         if (monitoramentoAtivo) {
-            fallDetector.start();
+            detectorQueda.iniciar();
             agendarCheckIn();
             agendarTelemetria();
         }
@@ -330,8 +351,8 @@ public class MainActivity extends AppCompatActivity implements FallDetector.List
     @Override
     protected void onPause() {
         super.onPause();
-        fallDetector.stop();
-        handler.removeCallbacks(checkInTask);
-        handler.removeCallbacks(telemetriaTask);
+        detectorQueda.parar();
+        handler.removeCallbacks(tarefaCheckIn);
+        handler.removeCallbacks(tarefaTelemetria);
     }
 }
