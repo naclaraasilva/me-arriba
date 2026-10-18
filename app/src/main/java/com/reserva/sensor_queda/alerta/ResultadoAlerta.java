@@ -17,4 +17,19 @@ public class ResultadoAlerta {
     public String mensagemApi;
 
     public boolean contatosCadastrados;
+
+    /** Houve tentativa de envio de SMS (existe ao menos um contato). */
+    public boolean smsTentado;
+
+    /** Permissao de envio de SMS concedida pelo usuario. */
+    public boolean smsPermissaoConcedida;
+
+    /** Quantidade de contatos que receberam o SMS. */
+    public int contatosNotificados;
+
+    /** Total de contatos cadastrados. */
+    public int contatosTotal;
+
+    /** Detalhe legivel do envio por SMS. */
+    public String mensagemSms;
 }

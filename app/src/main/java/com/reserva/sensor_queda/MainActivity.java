@@ -31,7 +31,6 @@ import com.reserva.sensor_queda.dados.RepositorioEventos;
 import com.reserva.sensor_queda.dados.TipoEvento;
 import com.reserva.sensor_queda.dados.RepositorioConfiguracoes;
 import com.reserva.sensor_queda.sensor.DetectorQueda;
-import com.reserva.sensor_queda.telemetria.EnviadorTelemetria;
 import com.reserva.sensor_queda.ui.StatusAlertaActivity;
 import com.reserva.sensor_queda.ui.QuedaDetectadaActivity;
 import com.reserva.sensor_queda.ui.HistoricoActivity;
@@ -68,16 +67,6 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
         public void run() {
             mostrarCheckIn();
             agendarCheckIn();
-        }
-    };
-
-    private static final long INTERVALO_TELEMETRIA_MS = 15000L;
-
-    private final Runnable tarefaTelemetria = new Runnable() {
-        @Override
-        public void run() {
-            enviarTelemetriaNormal();
-            agendarTelemetria();
         }
     };
 
@@ -177,15 +166,12 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
             detectorQueda.iniciar();
             solicitarPermissaoLocalizacao();
             agendarCheckIn();
-            enviarTelemetriaNormal();
-            agendarTelemetria();
         } else {
             monitoramentoAtivo = false;
             configuracoes.setMonitoramentoAtivo(false);
             atualizarInterface();
             detectorQueda.parar();
             handler.removeCallbacks(tarefaCheckIn);
-            handler.removeCallbacks(tarefaTelemetria);
         }
     }
 
@@ -239,12 +225,18 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
     }
 
     private void solicitarPermissaoLocalizacao() {
-        boolean concedida = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        if (!concedida) {
-            permissionLauncher.launch(new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION});
+        java.util.List<String> faltantes = new java.util.ArrayList<>();
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            faltantes.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            faltantes.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            faltantes.add(Manifest.permission.SEND_SMS);
+        }
+        if (!faltantes.isEmpty()) {
+            permissionLauncher.launch(faltantes.toArray(new String[0]));
         } else {
             atualizarCartaoLocalizacao();
         }
@@ -318,34 +310,6 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
         handler.postDelayed(tarefaCheckIn, intervalo);
     }
 
-    private void agendarTelemetria() {
-        handler.removeCallbacks(tarefaTelemetria);
-        if (!monitoramentoAtivo || configuracoes.isModoDemo() || configuracoes.getEndpoint().isEmpty()) {
-            return;
-        }
-        handler.postDelayed(tarefaTelemetria, INTERVALO_TELEMETRIA_MS);
-    }
-
-    private void enviarTelemetriaNormal() {
-        if (configuracoes.isModoDemo() || configuracoes.getEndpoint().isEmpty()) {
-            return;
-        }
-        ProvedorLocalizacao.obterLocalizacao(this, info -> {
-            EnviadorTelemetria.Amostra amostra = new EnviadorTelemetria.Amostra();
-            amostra.queda = false;
-            amostra.demo = false;
-            if (info.ok) {
-                amostra.latitude = info.lat;
-                amostra.longitude = info.lon;
-                amostra.velocidadeKmh = info.velocidadeKmh;
-            }
-            amostra.temperatura = detectorQueda.getUltimaTemperatura();
-            amostra.pressao = detectorQueda.getUltimaPressao();
-            EnviadorTelemetria.enviar(this, configuracoes.getEndpoint(), amostra,
-                    (ok, msg) -> { /* telemetria periodica silenciosa */ });
-        });
-    }
-
     private void mostrarCheckIn() {
         if (isFinishing()) {
             return;
@@ -379,7 +343,6 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
         if (monitoramentoAtivo) {
             detectorQueda.iniciar();
             agendarCheckIn();
-            agendarTelemetria();
         }
     }
 
@@ -388,6 +351,5 @@ public class MainActivity extends AppCompatActivity implements DetectorQueda.Lis
         super.onPause();
         detectorQueda.parar();
         handler.removeCallbacks(tarefaCheckIn);
-        handler.removeCallbacks(tarefaTelemetria);
     }
 }

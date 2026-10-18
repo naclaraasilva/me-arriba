@@ -1,6 +1,8 @@
 package com.reserva.sensor_queda.ui;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
@@ -8,6 +10,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -38,6 +42,7 @@ public class StatusAlertaActivity extends AppCompatActivity {
 
     private RepositorioEventos eventos;
     private ServicoAlerta servicoAlerta;
+    private ActivityResultLauncher<String> permissaoSmsLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +57,10 @@ public class StatusAlertaActivity extends AppCompatActivity {
 
         eventos = RepositorioEventos.get(this);
         servicoAlerta = new ServicoAlerta(this);
+
+        permissaoSmsLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                concedida -> iniciarEnvio());
 
         imgAlertaEstado = findViewById(R.id.imgAlertaEstado);
         txtAlertaTitulo = findViewById(R.id.txtAlertaTitulo);
@@ -69,13 +78,28 @@ public class StatusAlertaActivity extends AppCompatActivity {
         ImageButton btnVoltar = findViewById(R.id.btnVoltar);
         btnVoltar.setOnClickListener(v -> finish());
 
-        btnTentarNovamente.setOnClickListener(v -> enviar());
+        btnTentarNovamente.setOnClickListener(v -> solicitarPermissaoSms());
         btnCompartilhar.setOnClickListener(v -> compartilharLocalizacao());
         findViewById(R.id.btnVoltarInicio).setOnClickListener(v -> voltarInicio());
 
         eventos.registrar(TipoEvento.ALERTA_SOLICITADO, getString(R.string.evento_alerta_solicitado),
                 null);
 
+        solicitarPermissaoSms();
+    }
+
+    /** Pede a permissao de SMS (se necessario) antes de disparar o envio. */
+    private void solicitarPermissaoSms() {
+        boolean concedida = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED;
+        if (concedida) {
+            iniciarEnvio();
+        } else {
+            permissaoSmsLauncher.launch(Manifest.permission.SEND_SMS);
+        }
+    }
+
+    private void iniciarEnvio() {
         enviar();
     }
 
@@ -127,12 +151,20 @@ public class StatusAlertaActivity extends AppCompatActivity {
 
         txtAlertaDemo.setVisibility(resultado.demo ? View.VISIBLE : View.GONE);
 
-        if (resultado.contatosCadastrados) {
-            txtStatusContatos.setText(R.string.alerta_status_sem_confirmacao);
-        } else {
+        if (resultado.contatosTotal == 0) {
             txtStatusContatos.setText(R.string.alerta_status_nenhum_contato);
+            txtStatusContatos.setTextColor(corSec);
+        } else if (!resultado.smsPermissaoConcedida) {
+            txtStatusContatos.setText(R.string.alerta_status_sms_permissao);
+            txtStatusContatos.setTextColor(corErro);
+        } else if (resultado.contatosNotificados > 0) {
+            txtStatusContatos.setText(getString(R.string.alerta_status_sms_enviado,
+                    resultado.contatosNotificados, resultado.contatosTotal));
+            txtStatusContatos.setTextColor(corOk);
+        } else {
+            txtStatusContatos.setText(R.string.alerta_status_sms_falha);
+            txtStatusContatos.setTextColor(corErro);
         }
-        txtStatusContatos.setTextColor(corSec);
 
         if (resultado.localizacaoOk) {
             txtStatusLocalizacao.setText(R.string.alerta_status_disponivel);
@@ -150,6 +182,10 @@ public class StatusAlertaActivity extends AppCompatActivity {
         String detalhe = resultado.mensagemApi == null
                 ? (resultado.demo ? "modo demonstração" : "")
                 : resultado.mensagemApi;
+        if (resultado.contatosTotal > 0) {
+            detalhe = detalhe + " | SMS "
+                    + resultado.contatosNotificados + "/" + resultado.contatosTotal;
+        }
         eventos.registrar(
                 resultado.apiSucesso ? TipoEvento.ALERTA_ENVIADO : TipoEvento.ALERTA_FALHOU,
                 getString(resultado.apiSucesso ? R.string.evento_alerta_enviado : R.string.evento_alerta_falhou),

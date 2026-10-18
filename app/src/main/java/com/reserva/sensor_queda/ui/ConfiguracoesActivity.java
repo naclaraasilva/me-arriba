@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -27,9 +28,11 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.reserva.sensor_queda.R;
 import com.reserva.sensor_queda.dados.ContatoEmergencia;
 import com.reserva.sensor_queda.dados.RepositorioConfiguracoes;
+import com.reserva.sensor_queda.dados.TelefoneUtil;
 import com.reserva.sensor_queda.sensor.DetectorQueda;
 
 import java.util.List;
@@ -37,7 +40,7 @@ import java.util.List;
 /** Tela 4 - Configuracoes. */
 public class ConfiguracoesActivity extends AppCompatActivity {
 
-    private static final int[] OPCOES_INTERVALO = {5, 10, 15, 30, 60};
+    private static final int[] OPCOES_INTERVALO = {1, 5, 10, 15, 30, 60};
 
     private RepositorioConfiguracoes configuracoes;
     private DetectorQueda detectorQueda;
@@ -181,8 +184,9 @@ public class ConfiguracoesActivity extends AppCompatActivity {
     }
 
     private void atualizarLabelIntervalo() {
-        txtIntervalo.setText(getString(R.string.intervalo_checkin_valor,
-                configuracoes.getIntervaloCheckIn()));
+        int minutos = configuracoes.getIntervaloCheckIn();
+        txtIntervalo.setText(getResources().getQuantityString(
+                R.plurals.intervalo_checkin_valor, minutos, minutos));
     }
 
     private void escolherIntervalo() {
@@ -190,7 +194,8 @@ public class ConfiguracoesActivity extends AppCompatActivity {
         String[] rotulos = new String[OPCOES_INTERVALO.length];
         int selecionado = 0;
         for (int i = 0; i < OPCOES_INTERVALO.length; i++) {
-            rotulos[i] = getString(R.string.intervalo_checkin_valor, OPCOES_INTERVALO[i]);
+            rotulos[i] = getResources().getQuantityString(
+                    R.plurals.intervalo_checkin_valor, OPCOES_INTERVALO[i], OPCOES_INTERVALO[i]);
             if (OPCOES_INTERVALO[i] == atual) {
                 selecionado = i;
             }
@@ -227,6 +232,8 @@ public class ConfiguracoesActivity extends AppCompatActivity {
 
     private void abrirDialogoContato(int index) {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_contato, null);
+        TextInputLayout layoutNome = view.findViewById(R.id.layoutNome);
+        TextInputLayout layoutTelefone = view.findViewById(R.id.layoutTelefone);
         TextInputEditText inputNome = view.findViewById(R.id.inputNome);
         TextInputEditText inputTelefone = view.findViewById(R.id.inputTelefone);
 
@@ -237,28 +244,63 @@ public class ConfiguracoesActivity extends AppCompatActivity {
             inputTelefone.setText(contato.telefone);
         }
 
-        new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(edicao ? R.string.editar_contato : R.string.adicionar_contato)
                 .setView(view)
                 .setNegativeButton(R.string.cancelar, null)
-                .setPositiveButton(R.string.salvar, (dialog, which) -> {
-                    String nome = inputNome.getText() == null ? "" : inputNome.getText().toString().trim();
-                    String telefone = inputTelefone.getText() == null ? "" : inputTelefone.getText().toString().trim();
-                    if (nome.isEmpty() || telefone.isEmpty()) {
-                        Toast.makeText(this, R.string.toast_campos_obrigatorios, Toast.LENGTH_SHORT).show();
+                .setPositiveButton(R.string.salvar, null)
+                .create();
+
+        // Sobrescreve o botao para validar sem fechar o dialogo em caso de erro.
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    layoutNome.setError(null);
+                    layoutTelefone.setError(null);
+
+                    String nome = inputNome.getText() == null
+                            ? "" : inputNome.getText().toString().trim();
+                    String telefone = inputTelefone.getText() == null
+                            ? "" : inputTelefone.getText().toString().trim();
+
+                    boolean valido = true;
+                    if (nome.isEmpty()) {
+                        layoutNome.setError(getString(R.string.nome_erro_vazio));
+                        valido = false;
+                    }
+
+                    TelefoneUtil.Resultado resultado = TelefoneUtil.normalizar(telefone);
+                    if (!resultado.isValido()) {
+                        layoutTelefone.setError(mensagemErroTelefone(resultado.motivo));
+                        valido = false;
+                    }
+                    if (!valido) {
                         return;
                     }
+
                     if (edicao) {
                         contatos.get(index).nome = nome;
-                        contatos.get(index).telefone = telefone;
+                        contatos.get(index).telefone = resultado.e164;
                     } else {
-                        contatos.add(new ContatoEmergencia(nome, telefone));
+                        contatos.add(new ContatoEmergencia(nome, resultado.e164));
                     }
                     configuracoes.salvarContatos(contatos);
                     renderizarContatos();
                     Toast.makeText(this, R.string.toast_contato_adicionado, Toast.LENGTH_SHORT).show();
-                })
-                .show();
+                    dialog.dismiss();
+                }));
+
+        dialog.show();
+    }
+
+    private String mensagemErroTelefone(int motivo) {
+        switch (motivo) {
+            case TelefoneUtil.VAZIO:
+                return getString(R.string.telefone_erro_vazio);
+            case TelefoneUtil.DDD:
+                return getString(R.string.telefone_erro_ddd);
+            default:
+                return getString(R.string.telefone_erro_tamanho);
+        }
     }
 
     private void confirmarRemocao(int index) {
@@ -288,10 +330,18 @@ public class ConfiguracoesActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        boolean concedida = ContextCompat.checkSelfPermission(this,
+        boolean localizacao = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        txtStatusPermissao.setText(concedida
-                ? R.string.permissao_ok
-                : R.string.localizacao_permissao);
+        boolean sms = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED;
+        if (localizacao && sms) {
+            txtStatusPermissao.setText(R.string.permissao_ok_ambas);
+        } else if (!localizacao && !sms) {
+            txtStatusPermissao.setText(R.string.permissao_ambas_pendente);
+        } else if (!localizacao) {
+            txtStatusPermissao.setText(R.string.localizacao_permissao);
+        } else {
+            txtStatusPermissao.setText(R.string.permissao_sms);
+        }
     }
 }

@@ -58,7 +58,7 @@
     <string name="alerta_enviando_msg">Estamos tentando contatar a API de emergência e notificar seus contatos.</string>
     <string name="alerta_enviado_msg">A API confirmou o recebimento. Isso não garante que seus contatos já visualizaram a mensagem.</string>
     <string name="alerta_falha_msg">Não foi possível confirmar o envio. Verifique a conexão e tente novamente.</string>
-    <string name="alerta_demo_msg">MODO DEMONSTRAÇÃO: envio simulado, sem integração real configurada.</string>
+    <string name="alerta_demo_msg">MODO DEMONSTRAÇÃO: alerta à API simulado. O SMS aos contatos, quando configurado, é real.</string>
     <string name="alerta_canal_api">API / servidor</string>
     <string name="alerta_canal_contatos">Contatos de emergência</string>
     <string name="alerta_canal_localizacao">Localização</string>
@@ -71,6 +71,17 @@
     <string name="alerta_status_sem_confirmacao">Sem confirmação</string>
     <string name="alerta_status_disponivel">Disponível</string>
     <string name="alerta_status_nenhum_contato">Nenhum contato</string>
+    <string name="alerta_status_sms_permissao">Permissão de SMS negada</string>
+    <string name="alerta_status_sms_enviado">SMS enviado a %1$d de %2$d</string>
+    <string name="alerta_status_sms_falha">Falha no SMS</string>
+    <string name="alerta_canal_contatos_sms">Contatos de emergência (SMS)</string>
+    <string name="sms_alerta_queda">Me arriba: %1$s pode ter sofrido uma queda e precisa de ajuda.</string>
+    <string name="sms_localizacao_linha">Localização: %1$s</string>
+    <string name="sms_mapa_linha">Mapa: %1$s</string>
+    <string name="sms_localizacao_indisponivel">Localização indisponível no momento.</string>
+    <string name="permissao_sms">Permissão de SMS pendente</string>
+    <string name="permissao_ok_ambas">Localização e SMS concedidas</string>
+    <string name="permissao_ambas_pendente">Permissões de localização e SMS pendentes</string>
     <string name="alerta_enviado_curto">Alerta enviado</string>
     <string name="compartilhar_localizacao">Compartilhar localização</string>
     <string name="tentar_novamente">Tentar novamente</string>
@@ -88,6 +99,12 @@
     <string name="salvar">Salvar</string>
     <string name="nome">Nome</string>
     <string name="telefone">Telefone</string>
+    <string name="telefone_com_ddd">Telefone (com DDD)</string>
+    <string name="telefone_helper">Brasil: (11) 99999-8888 ou +55 11 99999-8888</string>
+    <string name="telefone_erro_vazio">Informe o telefone</string>
+    <string name="telefone_erro_tamanho">Informe DDD + número (10 ou 11 dígitos)</string>
+    <string name="telefone_erro_ddd">DDD inválido</string>
+    <string name="nome_erro_vazio">Informe o nome</string>
     <string name="secao_monitoramento">Monitoramento</string>
     <string name="habilitar_monitoramento">Habilitar monitoramento</string>
     <string name="secao_transporte">Modo de transporte</string>
@@ -97,7 +114,10 @@
     <string name="secao_checkin">Check-in de segurança</string>
     <string name="habilitar_checkin">Ativar check-in de segurança</string>
     <string name="intervalo_checkin">Intervalo</string>
-    <string name="intervalo_checkin_valor">%1$d minutos</string>
+    <plurals name="intervalo_checkin_valor">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
     <string name="secao_permissoes">Notificações e localização</string>
     <string name="permissoes_abrir">Abrir configurações de permissões</string>
     <string name="secao_demo">Modo de demonstração</string>

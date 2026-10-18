@@ -37,7 +37,7 @@ com.reserva.sensor_queda
 │   ├── EventType
 │   ├── EmergencyContact / SettingsRepository (SharedPreferences + JSON)
 ├── sensor/FallDetector              (acelerômetro + giroscópio + temperatura/pressão)
-├── alert/AlertService, AlertSender, MockAlertSender, LocationProvider, AlertResult
+├── alert/AlertService, AlertSender, MockAlertSender, SmsSender, LocationProvider, AlertResult
 ├── telemetry/TelemetrySender, DeviceInfo (API Socorro)
 └── widget/RingProgressView          (anel circular customizado)
 ```
@@ -68,6 +68,9 @@ a detecção use o botão **“Simular queda (teste)”** na tela inicial.
   “Não, estou bem” (registra falso positivo) ou “Preciso de ajuda”/espera 30 s
   (vai para a Tela 3).
 - **Botão de pânico:** clique (abre confirmação) ou **pressione e segure**.
+- **SMS automático:** cadastre um contato em Configurações, conceda a permissão
+  de SMS e simule uma queda. Ao confirmar/expirar o contador, o contato recebe
+  o SMS com a localização.
 - **Check-in:** em Configurações, ative o check-in e defina o intervalo.
 - **Histórico:** todos os eventos acima são persistidos e sobrevivem ao reinício.
 
@@ -89,11 +92,29 @@ O app já integra a API real em `https://ideaberta.com.br/socorro/`.
 - **Sucesso** = HTTP 2xx com `"status":"sucesso"` no JSON de resposta. A Tela 3
   mostra “Enviado à API”, sem afirmar entrega aos contatos.
 
+## SMS automático para os contatos de emergência
+
+Quando um alerta é disparado (queda confirmada/contador esgotado ou botão de
+pânico), o app envia automaticamente um **SMS** para cada contato cadastrado,
+usando o chip do próprio aparelho (`alerta/EnviadorSms` via `SmsManager`). Não
+depende de API externa nem de internet.
+
+- O texto inclui o nome do usuário, a localização (endereço quando disponível)
+  e um link do Google Maps com as coordenadas.
+- O telefone é validado e salvo em **E.164** (ex.: `+5511999998888`). Ao
+  cadastrar, o app remove parênteses/espaços/hífen, zero de tronco, código de
+  operadora e completa o `+55` quando necessário (`dados/TelefoneUtil`).
+  Números internacionais informados com `+` são preservados.
+- Exige a permissão **SMS** (`SEND_SMS`), solicitada ao iniciar o monitoramento
+  e novamente na tela de status caso ainda não tenha sido concedida.
+- Mensagens longas são enviadas em partes (`divideMessage`).
+- A Tela 3 mostra quantos contatos receberam o SMS (ex.: “SMS enviado a 2 de 2”)
+  e registra o resultado no histórico.
+
 ## O que ainda depende de integração real
 
-- **Envio efetivo de SMS/WhatsApp aos contatos** — requer canal/API de
-  mensageria realmente configurado. Por isso a Tela 3 mostra “Sem confirmação”
-  para contatos: sucesso HTTP da API **não** prova entrega ao contato.
+- **WhatsApp aos contatos** — o SMS já é enviado direto pelo dispositivo;
+  WhatsApp ainda exigiria um canal/API de mensageria configurado.
 - **Integração de clima** (ex.: OpenWeatherMap) — cartão permanece
   “Clima indisponível” até a integração existir.
 - **Sincronização na nuvem** do histórico — expansão futura; hoje é local (Room).
